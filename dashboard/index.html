@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="mast">
+  <div class="mast-in">
+    <p class="kicker">TOKEN RADAR &middot; MODEL radar-2</p>
+    <h1>Pre-token protocols, ranked by implied value</h1>
+    <p class="lede">Every protocol below records no token yet. The board prices what its token
+    <em>would</em> be worth if the protocol&rsquo;s record stayed as it is &mdash; it does not
+    predict whether or when a token is issued.</p>    <dl class="stats" id="stats">
+      <div><dt>Snapshot</dt><dd id="stat-asof">&mdash;</dd></div>
+      <div><dt>Board</dt><dd id="stat-board">&mdash;</dd></div>
+      <div><dt>Watchlist</dt><dd id="stat-watch">&mdash;</dd></div>
+      <div><dt>Pre-token TVL</dt><dd id="stat-tvl">&mdash;</dd></div>
+      <div><dt>Live tokens</dt><dd id="stat-live">&mdash;</dd></div>
+    </dl>
+    <p class="src" id="stat-source"></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="card" id="controls">
+    <h2>Find a protocol</h2>
+    <div class="tabs" role="tablist" aria-label="Token status">
+      <button type="button" id="tab-pre" role="tab" aria-selected="true">Pre-token board</button>
+      <button type="button" id="tab-live" role="tab" aria-selected="false">Live tokens</button>
+    </div>
+    <div class="filters">
+      <label>Search <input type="search" id="f-q" placeholder="name or slug&hellip;" autocomplete="off"></label>
+      <label>Category <select id="f-cat"><option value="all">All categories</option></select></label>
+      <label>Chain <select id="f-chain"><option value="all">All chains</option></select></label>
+      <label class="check"><input type="checkbox" id="f-wl"> Watchlist only ★</label>
+      <button type="button" id="f-clear">Clear</button>
+    </div>
+    <p class="count" id="count"></p>
+  </section>
+
+  <section class="card" id="board-sec">
+    <div id="board-view">
+      <table class="board" id="board">
+        <thead><tr>
+          <th data-sort="rank" class="num">#</th>
+          <th data-sort="name">Protocol</th>
+          <th data-sort="category">Category</th>
+          <th>Chains</th>
+          <th data-sort="tvl_usd" class="num">TVL</th>
+          <th data-sort="change_7d" class="num">7d</th>
+          <th data-sort="age_days" class="num">Age</th>
+          <th data-sort="implied_value_usd" class="num">Implied value</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="live-view" hidden>
+      <p class="live-note">Already trades &mdash; shown at market value, not ranked. These protocols
+      have a token, so they never appear on the pre-token board.</p>
+      <table class="board" id="live">
+        <thead><tr>
+          <th>Protocol</th><th>Category</th><th>Chains</th>
+          <th class="num">TVL</th><th class="num">Market cap</th><th class="num">7d</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" id="detail" hidden>
+    <button type="button" id="detail-close">&larr; Back to the board</button>
+    <div id="detail-body"></div>
+  </section>
+
+  <section class="card" id="how">
+    <h2>How the model works</h2>
+    <p class="formula">implied value = TVL &times; ref multiple &times; 0.6 &times; growth &times; maturity &times; chain</p>
+    <div class="how-grid">
+    <div>
+    <ul class="model-list">
+      <li><b>Ref multiple</b> &mdash; the median market-cap / TVL of protocols that already
+      trade, per category. A Lending protocol is priced like listed Lending protocols, not
+      like a DEX. Categories with no listed peers fall back to the global median. The
+      multiple is clamped to 0.05&ndash;2.5.</li>
+      <li><b>Pre-token discount 0.6</b> &mdash; a token that does not exist yet is worth less
+      than the same cash flows already trading: the model takes 60% of the listed-comparable
+      value.</li>
+      <li><b>Growth</b> &mdash; 1 + clamp(7-day TVL change, &minus;50%, +150%) &divide; 100
+      &times; 0.6. Fast-growing TVL lifts the value; shrinking TVL cuts it. No 7-day figure
+      counts as 0%.</li>
+      <li><b>Maturity</b> &mdash; 0.7 + min(age in days, 1095) &divide; 1095 &times; 0.3.
+      A protocol tracked for three years scores 1.0; a brand-new one scores 0.7. Unknown age
+      counts as 365 days.</li>
+      <li><b>Chain</b> &mdash; 1 + 0.04 &times; min(extra chains beyond the first, 5).
+      Multi-chain deployment adds up to 20%.</li>
+      <li><b>Eligibility</b> &mdash; the board only ranks protocols that could launch a token.
+      Products that are by definition a wrapped, staked or bridged representation of another
+      asset (bridges, liquid staking, wrapped BTC) are not ranked &mdash; the same exclusion
+      the sealed watchlist applies. The 40 watchlist protocols are always ranked.</li>
+    </ul>
+    <p class="note">Calibration uses only this snapshot&rsquo;s own figures: TVL, 7-day change,
+    listing age and the listed market&rsquo;s multiples. No protocol name is special-cased.</p>
+    </div>
+    <div class="calib-box">
+    <h3>Calibration &mdash; ref multiples by category</h3>
+    <p class="note">Global ref multiple: <b id="global-ref">&mdash;</b>. Ten largest categories below.</p>
+    <table class="calib" id="calib"><thead><tr><th>Category</th><th class="num">Ref multiple</th></tr></thead><tbody></tbody></table>
+    </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Token Radar, model radar-2. Implied values are the entry&rsquo;s own claim from one
+  snapshot, not a prediction and not financial advice. Farm steps cost real money and carry
+  smart-contract risk &mdash; verify every step on the protocol&rsquo;s own page.</p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
